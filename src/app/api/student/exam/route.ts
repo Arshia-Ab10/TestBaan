@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
 
 export async function GET() {
   return NextResponse.json({ error: 'درخواست غیرمجاز (فقط POST پذیرفته می‌شود)' }, { status: 405 });
@@ -14,9 +14,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as any;
     const { action, sheetId, userAnswers, questionFlags, qNum } = body;
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
-
+    const db = await getDb();
     if (!db) return NextResponse.json({ error: 'دیتابیس متصل نیست' }, { status: 500 });
 
     if (action === 'fetch') {
@@ -77,7 +75,6 @@ export async function POST(request: Request) {
         const key = correctKeys[i];
         const isKeyValid = typeof key === 'number' && key >= 1 && key <= 4;
         
-        // فقط سوالاتی که کلید معتبر دارند در درصدگیری محاسبه می‌شوند
         if (isKeyValid) {
           validQuestionsCount++;
           if (userAnswers && userAnswers[i]) {

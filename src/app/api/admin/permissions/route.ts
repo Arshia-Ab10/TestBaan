@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
 
 export async function GET(request: Request) {
   const user = await getAuthUser();
@@ -10,8 +10,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
-  const { env } = await getCloudflareContext();
-  const db = (env as any).testbaan_db;
+  const db = await getDb();
   
   const { results } = await db.prepare("SELECT answer_sheet_id FROM user_permissions WHERE user_id = ?").bind(userId).all();
   return NextResponse.json(results.map((r: any) => r.answer_sheet_id));
@@ -24,8 +23,7 @@ export async function POST(request: Request) {
   }
 
   const { userId, sheetIds } = (await request.json()) as any;
-  const { env } = await getCloudflareContext();
-  const db = (env as any).testbaan_db;
+  const db = await getDb();
   
   await db.prepare("DELETE FROM user_permissions WHERE user_id = ?").bind(userId).run();
   

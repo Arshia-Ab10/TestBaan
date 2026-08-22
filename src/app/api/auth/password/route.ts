@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb, getEnv } from '@/lib/db';
 import { hashPassword, verifyPassword } from '@/lib/hash';
 
 export async function POST(request: Request) {
@@ -11,11 +11,10 @@ export async function POST(request: Request) {
     if (!email) return NextResponse.json({ error: 'ایمیل الزامی است' }, { status: 400 });
     const lowerEmail = email.toLowerCase();
 
-    const context = (await getCloudflareContext()) as any;
-    const env = context.env || process.env;
-    const db = env.testbaan_db;
+    const db = await getDb();
+    const env = await getEnv();
 
-    // 1️⃣ درخواست ثبت‌نام (فقط ارسال کد تایید)
+    // 1️⃣ درخواست ثبت‌نام
     if (action === 'register') {
       if (!firstName) return NextResponse.json({ error: 'نام الزامی است' }, { status: 400 });
       
@@ -31,7 +30,6 @@ export async function POST(request: Request) {
       const { results } = await db.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').bind(lowerEmail).all();
       if (results && results.length > 0) return NextResponse.json({ error: 'این ایمیل قبلاً ثبت شده است' }, { status: 400 });
 
-      // ارسال کد تایید به ایمیل
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       await db.prepare('INSERT INTO otps (id, email, code, expires_at) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), lowerEmail, otpCode, expiresAt).run();
@@ -66,7 +64,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: 'otp_sent' });
     }
 
-    // 2️⃣ تایید کد و ثبت‌نام نهایی
+    // 2️⃣ تایید کد و تکمیل ثبت‌نام
     if (action === 'register_verify') {
       if (!code || !firstName || !password) return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
 
@@ -111,7 +109,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 4️⃣ فراموشی رمز عبور (ارسال ایمیل)
+    // 4️⃣ فراموشی رمز عبور
     if (action === 'forgot') {
       const { results } = await db.prepare('SELECT id, first_name FROM users WHERE email = ? LIMIT 1').bind(lowerEmail).all();
       if (!results || results.length === 0) return NextResponse.json({ error: 'کاربری با این ایمیل یافت نشد' }, { status: 400 });
@@ -151,7 +149,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 5️⃣ بررسی صحت کد (مرحله اول بازیابی)
+    // 5️⃣ بررسی صحت کد
     if (action === 'verify_reset_code') {
       if (!code) return NextResponse.json({ error: 'کد الزامی است' }, { status: 400 });
       const { results: otpResults } = await db.prepare('SELECT * FROM otps WHERE email = ? ORDER BY expires_at DESC LIMIT 1').bind(lowerEmail).all();
@@ -164,7 +162,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 6️⃣ تایید نهایی و تنظیم رمز جدید (مرحله دوم بازیابی)
+    // 6️⃣ ثبت رمز جدید
     if (action === 'reset') {
       if (!code || !password || password.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
         return NextResponse.json({ error: 'رمز عبور باید حداقل ۸ کاراکتر و شامل حروف و اعداد باشد' }, { status: 400 });

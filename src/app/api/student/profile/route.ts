@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb, getEnv } from '@/lib/db';
 import { hashPassword, verifyPassword } from '@/lib/hash';
 
 export async function GET() {
@@ -8,9 +8,7 @@ export async function GET() {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'غیرمجاز' }, { status: 401 });
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
-
+    const db = await getDb();
     const { results } = await db.prepare('SELECT id, email, first_name, last_name, password_hash FROM users WHERE id = ? LIMIT 1').bind(user.id).all();
     if (!results || results.length === 0) return NextResponse.json({ error: 'کاربر یافت نشد' }, { status: 404 });
 
@@ -36,11 +34,9 @@ export async function POST(request: Request) {
     const body = (await request.json()) as any;
     const { action } = body;
 
-    const context = (await getCloudflareContext()) as any;
-    const env = context.env || process.env;
-    const db = env.testbaan_db;
+    const db = await getDb();
+    const env = await getEnv();
 
-    // 1️⃣ ویرایش نام و نام خانوادگی
     if (action === 'update_name') {
       const { firstName, lastName } = body;
       if (!firstName) return NextResponse.json({ error: 'نام الزامی است' }, { status: 400 });
@@ -54,7 +50,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 2️⃣ درخواست تغییر ایمیل (ارسال کد به ایمیل جدید)
     if (action === 'request_email_change') {
       const { newEmail } = body;
       if (!newEmail || !newEmail.includes('@')) return NextResponse.json({ error: 'ایمیل نامعتبر است' }, { status: 400 });
@@ -99,7 +94,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 3️⃣ تایید کد و تغییر نهایی ایمیل
     if (action === 'verify_email_change') {
       const { newEmail, code } = body;
       const lowerNewEmail = newEmail.toLowerCase();
@@ -117,7 +111,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 4️⃣ تغییر رمز عبور با استفاده از رمز قبلی
     if (action === 'change_password') {
       const { oldPassword, newPassword } = body;
       
@@ -140,7 +133,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 5️⃣ ارسال کد OTP برای تغییر رمز
     if (action === 'send_otp') {
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -176,7 +168,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 6️⃣ تایید OTP و ثبت رمز جدید
     if (action === 'verify_otp_and_change') {
       const { code, newPassword } = body;
       

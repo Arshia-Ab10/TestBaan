@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -10,9 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const sheetId = searchParams.get('sheetId');
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
-
+    const db = await getDb();
     const query = `
       SELECT s.id, s.score_percentage, s.user_answers, s.version, s.completed_at, 
              a.correct_keys, a.title, a.start_question_number, a.total_questions, a.subjects_map

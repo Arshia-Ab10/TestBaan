@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const book_id = searchParams.get('book_id');
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
+    const db = await getDb();
     if (!db) return NextResponse.json({ error: 'دیتابیس متصل نیست' }, { status: 500 });
 
     let query = 'SELECT * FROM answer_sheets';
@@ -45,13 +44,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
     }
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
-
+    const db = await getDb();
     const random10Digit = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     const keysJson = JSON.stringify(correct_keys);
 
-    // custom_id از کوئری زیر حذف شد
     await db.prepare(
       `INSERT INTO answer_sheets (id, book_id, title, type, duration_minutes, start_question_number, total_questions, correct_keys, subjects_map) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(random10Digit, book_id, title, type || 'practice', duration_minutes || null, start_question_number || 1, total_questions, keysJson, subjects_map || '').run();
@@ -74,8 +70,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
     }
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
+    const db = await getDb();
     const keysJson = JSON.stringify(correct_keys);
 
     await db.prepare(
@@ -94,8 +89,7 @@ export async function PATCH(request: Request) {
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'غیرمجاز' }, { status: 403 });
 
     const { orderedIds } = (await request.json()) as any;
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
+    const db = await getDb();
 
     for (let i = 0; i < orderedIds.length; i++) {
       const sortOrder = orderedIds.length - i;
@@ -115,8 +109,7 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
+    const db = await getDb();
 
     await db.prepare('DELETE FROM answer_sheets WHERE id = ?').bind(id).run();
     return NextResponse.json({ message: 'پاسخ‌برگ حذف شد' }, { status: 200 });

@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
 
 export async function GET() {
   try {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'لطفاً وارد شوید' }, { status: 401 });
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
+    const db = await getDb();
     const { results } = await db.prepare('SELECT * FROM books ORDER BY created_at DESC').all();
     return NextResponse.json(results, { status: 200 });
   } catch (error: any) {
@@ -25,12 +24,8 @@ export async function POST(request: Request) {
     const { title, description } = body;
     if (!title) return NextResponse.json({ error: 'عنوان الزامی است' }, { status: 400 });
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
-
+    const db = await getDb();
     const random10Digit = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-    
-    // custom_id حذف شد
     await db.prepare('INSERT INTO books (id, title, description) VALUES (?, ?, ?)')
       .bind(random10Digit, title, description || '').run();
 
@@ -49,9 +44,7 @@ export async function PUT(request: Request) {
     const { id, title, description } = body;
     if (!id || !title) return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
 
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
-
+    const db = await getDb();
     await db.prepare('UPDATE books SET title = ?, description = ? WHERE id = ?')
       .bind(title, description || '', id).run();
 
@@ -68,8 +61,7 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    const { env } = await getCloudflareContext();
-    const db = (env as any).testbaan_db;
+    const db = await getDb();
 
     await db.prepare('DELETE FROM books WHERE id = ?').bind(id).run();
     return NextResponse.json({ message: 'حذف شد' }, { status: 200 });
