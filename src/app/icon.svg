@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <!-- گرادینت کهکشانی/عمیق به عنوان پس‌زمینه برای اینکه نئون جلوه کند -->
+    <linearGradient id="baseBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    
+    <!-- گرادینت تیک درخشان (آبی آسمانی به سبز زمردی) -->
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <!-- افکت نئونی برای تابش درخشش از پشت آیکون -->
+    <filter id="ultraGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.5" result="blur1" />
+      <feGaussianBlur stdDeviation="8" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <!-- کادر اصلی که 100 درصد تصویر را پر می‌کند و به طور اتوماتیک گوشه‌های گرد می‌گیرد -->
+  <rect width="100" height="100" rx="22" fill="url(#baseBg)" stroke="#334155" stroke-width="2"/>
+
+  <!-- 4 گزینه کلاسیک تست‌بان به شکل مینیمال با رنگ‌بندی کامل در پایین صفحه -->
+  <g filter="url(#softShadow)">
+    <circle cx="22" cy="78" r="5" fill="#EF4444" />
+    <circle cx="41" cy="78" r="5" fill="#F59E0B" />
+    <circle cx="60" cy="78" r="5" fill="#3B82F6" />
+    <circle cx="78" cy="78" r="5" fill="#10B981" />
+  </g>
+
+  <!-- حرف T فوق العاده ضخیم و سیال ترکیب‌شده با تیک (وضوح بالا در 16پیکسل) -->
+  <g filter="url(#ultraGlow)">
+    <path d="M 18 30 Q 50 15 82 30" fill="none" stroke="url(#neonGradient)" stroke-width="11" stroke-linecap="round" />
+    <path d="M 50 22 V 88 L 84 45" fill="none" stroke="url(#neonGradient)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  
+  <!-- یک هایلایت ریز سفید در بالای خط ضخیم تا حالت 3D بیشتری القا کند -->
+  <path d="M 50 22 V 86" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+</svg>
