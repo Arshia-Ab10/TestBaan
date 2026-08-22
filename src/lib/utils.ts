@@ -15,3 +15,27 @@ export function toEnNum(val: string | number | null | undefined): string {
   }
   return result;
 }
+
+// تابع تشخیص دقیق دامنه اصلی سایت
+export function getBaseUrl(request?: Request): string {
+  if (process.env.APP_URL) {
+    return process.env.APP_URL.replace(/\/$/, '');
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+
+  if (request) {
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'http');
+    if (host) {
+      return `${proto}://${host}`;
+    }
+    try {
+      const url = new URL(request.url);
+      return `${url.protocol}//${url.host}`;
+    } catch {}
+  }
+
+  return 'http://localhost:3000';
+}

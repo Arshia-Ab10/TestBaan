@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getEnv, getDb } from '@/lib/db';
+import { getBaseUrl } from '@/lib/utils';
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const protocol = url.hostname === 'localhost' ? 'http' : 'https';
-  const baseUrl = `${protocol}://${url.host}`;
+  const baseUrl = getBaseUrl(request);
   const redirectUri = `${baseUrl}/api/auth/callback/google`;
 
   try {
+    const url = new URL(request.url);
     const code = url.searchParams.get('code');
     if (!code) return NextResponse.redirect(`${baseUrl}/?error=no_code`);
 
